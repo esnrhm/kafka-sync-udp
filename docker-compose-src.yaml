@@ -1,0 +1,101 @@
+version: '3.5'
+services:
+  
+  zookeeper01-src:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper01-src
+    container_name: zookeeper01-src
+    restart: always
+    networks:
+      - src-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  zookeeper02-src:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper02-src
+    container_name: zookeeper02-src
+    restart: always
+    networks:
+      - src-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  zookeeper03-src:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper03-src
+    container_name: zookeeper03-src
+    restart: always
+    networks:
+      - src-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka-src:
+    image: confluentinc/cp-kafka
+    container_name: kafka-src
+    restart: always
+    networks:
+      - src-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - '29092:29092'
+    depends_on:
+      - zookeeper01-src
+      - zookeeper02-src
+      - zookeeper03-src
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper01-src:2181,zookeeper02-src:2181,zookeeper03-src:2181
+      KAFKA_ADVERTISED_LISTENERS:  PLAINTEXT://kafka-src:9092,PLAINTEXT_HOST://${my_ip}:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_BYTES: 20000000000
+      KAFKA_LOG_RETENTION_MS: 10800000
+    #volumes: 
+    #    - /var/run/docker.sock:/var/run/docker.sock
+  
+  fluentd-src:
+    container_name: fluentd-src
+    build: .
+    restart: always
+    networks:
+      - src-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    volumes:
+      - ${PWD}/fluentd-src/:/fluentd/
+    environment:
+      - FLUENTD_CONF=fluent.conf
+
+    
+networks:
+  src-network:
+    external: false
+    name: src-network

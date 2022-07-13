@@ -1,0 +1,104 @@
+version: '3.5'
+services:
+  
+  zookeeper01-dst:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper01-dst
+    container_name: zookeeper01-dst
+    networks:
+      - dst-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  zookeeper02-dst:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper02-dst
+    container_name: zookeeper02-dst
+    networks:
+      - dst-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  zookeeper03-dst:
+    image: confluentinc/cp-zookeeper:latest
+    hostname: zookeeper03-dst
+    container_name: zookeeper03-dst
+    networks:
+      - dst-network
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka-dst:
+    image: confluentinc/cp-kafka
+    container_name: kafka-dst
+    restart: always
+    networks:
+      - dst-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - '39092:29092'
+    depends_on:
+      - zookeeper01-dst
+      - zookeeper02-dst
+      - zookeeper03-dst
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper01-dst:2181,zookeeper02-dst:2181,zookeeper03-dst:2181
+      KAFKA_ADVERTISED_LISTENERS:  PLAINTEXT://kafka-dst:9092,PLAINTEXT_HOST://${my_ip}:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_BYTES: 20000000000
+      KAFKA_LOG_RETENTION_MS: 10800000
+    #volumes: 
+    #    - /var/run/docker.sock:/var/run/docker.sock
+  
+  fluentd-dst:
+    container_name: fluentd-dst
+    build: .
+    restart: always
+    networks:
+      - dst-network
+    ports:
+      - "5160:5160/udp"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: 10m
+        max-file: "3"
+    volumes:
+      - ${PWD}/fluentd-dst/:/fluentd/
+    environment:
+      - FLUENTD_CONF=fluent.conf
+
+    
+networks:
+  dst-network:
+    external: false
+    name: dst-network
+
